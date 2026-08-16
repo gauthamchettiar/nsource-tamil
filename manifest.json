@@ -244,6 +244,25 @@
         "en"
       ],
       "supportsExternalPlayer": true
+    },
+    {
+      "id": "envcheck",
+      "name": "EnvCheck (DIAGNOSTIC - remove after use)",
+      "description": "Not a real source. Reports what the runtime actually supports (fetch/AbortController/cheerio availability) as fake stream titles, for debugging why some providers fail on specific builds.",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "src/providers/envcheck.js",
+      "enabled": true,
+      "contentLanguage": [
+        "en",
+        "ta",
+        "hi"
+      ],
+      "supportsExternalPlayer": true
     }
   ]
 }
