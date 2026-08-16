@@ -23,19 +23,23 @@ const HEADERS = {
  * Fetch with timeout to prevent hanging requests
  */
 async function fetchWithTimeout(url, options = {}, timeout = 10000) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
     try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal,
-            redirect: 'follow'
-        });
-        clearTimeout(timeoutId);
-        return response;
+        if (typeof AbortController !== 'undefined') {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            try {
+                return await fetch(url, { ...options, signal: controller.signal, redirect: 'follow' });
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+        // Some Hermes/RN builds (seen on Android TV) don't expose
+        // AbortController — race the fetch against a plain timer instead.
+        return await Promise.race([
+            fetch(url, { ...options, redirect: 'follow' }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout))
+        ]);
     } catch (error) {
-        clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
             throw new Error(`Request timeout after ${timeout}ms`);
         }

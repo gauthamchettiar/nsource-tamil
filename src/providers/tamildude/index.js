@@ -20,19 +20,34 @@ const HEADERS = {
  */
 async function fetchWithTimeout(url, options = {}, timeout = 10000, retries = 1) {
   for (let attempt = 0; ; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
     try {
-      const response = await fetch(url, { ...options, signal: controller.signal });
-      clearTimeout(timeoutId);
+      let response;
+      if (typeof AbortController !== 'undefined') {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        try {
+          response = await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      } else {
+        // Some Hermes/RN builds (seen on Android TV) don't expose
+        // AbortController — race the fetch against a plain timer instead.
+        response = await Promise.race([
+          fetch(url, options),
+          new Promise((_, reject) => setTimeout(() => {
+            const err = new Error(`Request timeout after ${timeout}ms`);
+            err.name = 'AbortError';
+            reject(err);
+          }, timeout))
+        ]);
+      }
       if (response.status >= 500 && response.status <= 504 && attempt < retries) {
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
         continue;
       }
       return response;
     } catch (error) {
-      clearTimeout(timeoutId);
       const err = error.name === 'AbortError' ? new Error(`Request timeout after ${timeout}ms`) : error;
       if (attempt < retries) {
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
