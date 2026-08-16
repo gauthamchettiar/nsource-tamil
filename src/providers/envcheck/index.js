@@ -106,9 +106,13 @@ async function getStreams(tmdbId, mediaType, season, episode) {
     }
 
     return results.map((line, i) => ({
-        name: 'EnvCheck',
+        name: `EnvCheck ${i + 1}`,
         title: `${i + 1}. ${line}`,
-        url: 'https://example.com/envcheck-not-playable.mp4',
+        // Every line needs a genuinely distinct URL — if the app's results
+        // list keys off this field (common in list UIs), identical
+        // placeholder URLs across all entries collapse them down to what
+        // looks like a single repeated item.
+        url: `https://example.com/envcheck-not-playable-${i + 1}.mp4`,
         quality: 'N/A',
         provider: 'EnvCheck'
     }));
