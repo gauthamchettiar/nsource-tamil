@@ -301,6 +301,25 @@
         "hi"
       ],
       "supportsExternalPlayer": true
+    },
+    {
+      "id": "parsecheck",
+      "name": "ParseCheck (DIAGNOSTIC - remove after use)",
+      "description": "Not a real source. Runs real providers' actual cheerio selectors against real fetched pages and reports what gets extracted, to isolate cheerio parsing bugs from networking/reachability issues.",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "src/providers/parsecheck.js",
+      "enabled": true,
+      "contentLanguage": [
+        "en",
+        "ta",
+        "hi"
+      ],
+      "supportsExternalPlayer": true
     }
   ]
 }
