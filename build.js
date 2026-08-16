@@ -18,7 +18,14 @@ const fs = require('fs');
 const path = require('path');
 
 const srcDir = path.join(__dirname, 'src', 'providers');
-const outDir = path.join(__dirname, 'src', 'providers');
+
+// Output defaults to alongside the sources, but --outdir=<path> can redirect it.
+// verify_providers.js uses that to rebuild into a temp dir and diff against the
+// committed bundles without touching the working tree.
+const outDirArg = process.argv.find(a => a.startsWith('--outdir='));
+const outDir = outDirArg
+    ? path.resolve(outDirArg.slice('--outdir='.length))
+    : path.join(__dirname, 'src', 'providers');
 
 // Modules that the Nuvio app provides - don't bundle these
 const EXTERNAL_MODULES = [

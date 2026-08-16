@@ -15,7 +15,7 @@
  *   3. Extract direct HLS URLs from m4uplay.com using Packer deobfuscation
  */
 
-const { getStreams } = require('./src/providers/movies4u/index.js');
+const { getStreams } = require('./src/providers/movies4u.js');
 
 async function test() {
     console.log("Starting Movies4u test...");

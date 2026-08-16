@@ -1,4 +1,4 @@
-const { getStreams } = require('./src/providers/xdmovies/index.js');
+const { getStreams } = require('./src/providers/xdmovies.js');
 const axios = require('axios');
 
 async function checkLink(url, headers = {}) {

@@ -3,9 +3,11 @@
     "version": "1.0.0",
     "description": "Providers for Nuvio Streaming",
     "scripts": {
-        "build": "node build.js",
-        "build:watch": "nodemon --watch src -e js,json --exec 'node build.js'",
-        "build:provider": "node build.js",
+        "build": "node build.js --minify",
+        "build:watch": "nodemon --watch src -e js,json --exec 'node build.js --minify'",
+        "build:provider": "node build.js --minify",
+        "verify": "node verify_providers.js",
+        "test": "node verify_providers.js",
         "start": "node server.js"
     },
     "devDependencies": {

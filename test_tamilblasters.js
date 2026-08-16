@@ -1,4 +1,4 @@
-const { getStreams } = require('./src/providers/tamilblasters/index.js');
+const { getStreams } = require('./src/providers/tamilblasters.js');
 
 async function test() {
     console.log("Starting Tamilblasters test...");

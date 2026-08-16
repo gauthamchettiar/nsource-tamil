@@ -56,25 +56,37 @@ If your provider uses encryption/decryption or heavy parsing dependencies, alway
 
 ### Architecture
 
--   **`src/`**: The workspace for modern, multi-file providers.
--   **`providers/`**: The distribution folder. The app reads files from here. **Do not edit these files manually if they were built from `src/`.**
+-   **`src/providers/<name>/`**: The workspace for a multi-file provider. `index.js` is the entry point.
+-   **`src/providers/<name>.js`**: The built bundle, written next to the source folder. The app reads these. **Do not edit them by hand — they are regenerated on every build.**
 -   **`build.js`**: The utility script that builds and transpiles your code.
+-   **`manifest.json`**: The registry the app reads. Every provider needs an entry here whose `filename` points at its built bundle.
 
 ---
 
-## 3. The Provider Template
+## 3. Creating a Provider
 
-We have included a starter template in `src/_template`. To create a new provider:
-
-1.  **Copy the template**
+1.  **Create the source folder**
     ```bash
-    cp -r src/_template src/my-new-provider
+    mkdir -p src/providers/my-new-provider
     ```
 
-2.  **Rename/Edit files**
-    -   `src/my-new-provider/index.js`: The main entry point.
-    -   `src/my-new-provider/http.js`: Helper for network requests.
-    -   `src/my-new-provider/extractor.js`: Your scraping logic.
+2.  **Add `src/providers/my-new-provider/index.js`**
+
+    The entry point must export a `getStreams` function — this is the contract every provider in this repo follows:
+    ```js
+    const cheerio = require('cheerio-without-node-native');
+
+    async function getStreams(tmdbId, mediaType, season, episode) {
+        // ...find streams...
+        return []; // array of stream objects
+    }
+
+    module.exports = { getStreams };
+    ```
+
+    Split helpers into sibling files (`http.js`, `extractor.js`, ...) and `require` them normally — the bundler inlines them.
+
+3.  **Register it in `manifest.json`** with `"filename": "src/providers/my-new-provider.js"`.
 
 ---
 
@@ -84,10 +96,10 @@ We have included a starter template in `src/_template`. To create a new provider
 
 Best for complex providers. You write modern code in `src/`, split across multiple files.
 
-1.  **Develpop in `src/myprovider/`**.
+1.  **Develop in `src/providers/myprovider/`**.
     You can use `import`/`export` and `async/await` freely.
     ```javascript
-    // src/myprovider/index.js
+    // src/providers/myprovider/index.js
     import { getStream } from './extractor.js';
     
     async function getStreams(tmdbId, ...) {
@@ -99,13 +111,13 @@ Best for complex providers. You write modern code in `src/`, split across multip
     ```bash
     node build.js myprovider
     ```
-    This bundles everything into a single file at `providers/myprovider.js` and transpiles the async code.
+    This bundles everything into a single file at `src/providers/myprovider.js` and transpiles the async code.
 
 ### Workflow B: Single-File (Legacy/Simple)
 
-If you have a simple script or are porting a provider from another project, you might have a single file in `providers/`.
+If you have a simple script or are porting a provider from another project, you might have a single file in `src/providers/`.
 
-1.  **Develop in `providers/myprovider.js`**.
+1.  **Develop in `src/providers/myprovider.js`**.
     If you use `async/await`, it will **crash** the app unless you process it.
 
 2.  **Transpile**
@@ -113,14 +125,14 @@ If you have a simple script or are porting a provider from another project, you 
     ```bash
     node build.js --transpile myprovider.js
     ```
-    This rewrites `providers/myprovider.js` with Hermes-compatible code.
+    This rewrites `src/providers/myprovider.js` with Hermes-compatible code.
 
 ---
 
 ## 5. The Build System
 
 The `build.js` script is your primary tool. It handles two main jobs:
-1.  **Bundling**: Combines multiple files from `src/` into one.
+1.  **Bundling**: Combines multiple files from `src/providers/<name>/` into one.
 2.  **Transpiling**: Converts ES2017+ async/await into ES2016 Generators.
 
 ### Bundling Source Providers
@@ -129,22 +141,22 @@ Usage: `node build.js [provider_names...]`
 
 | Command | Description |
 |---------|-------------|
-| `node build.js` | Builds **ALL** providers found in `src/`. |
-| `node build.js vidlink` | Builds only the `src/vidlink` provider. |
+| `node build.js` | Builds **ALL** providers found in `src/providers/`. |
+| `node build.js vidlink` | Builds only the `src/providers/vidlink` provider. |
 | `node build.js vidlink castle` | Builds multiple specific providers. |
 
-**Output**: Creates `providers/<name>.js`.
+**Output**: Creates `src/providers/<name>.js`.
 
 ### Transpiling Async/Await (Single Files)
 
-If you have a standalone file in `providers/` that uses `async/await`, you must transpile it.
+If you have a standalone file in `src/providers/` that uses `async/await`, you must transpile it.
 
 Usage: `node build.js --transpile [filenames...]`
 
 | Command | Description |
 |---------|-------------|
-| `node build.js --transpile` | Scans `providers/` for single files using async and transpiles them all. |
-| `node build.js --transpile old-scraper` | Transpiles `providers/old-scraper.js` in-place. |
+| `node build.js --transpile` | Scans `src/providers/` for single files using async and transpiles them all. |
+| `node build.js --transpile old-scraper` | Transpiles `src/providers/old-scraper.js` in-place. |
 | `node build.js --transpile file1 file2` | Transpiles multiple specific files. |
 
 **Note**: This overwrites the file with the transpiled version. The original source is lost unless you keep a backup or use Git. This is why **Workflow A (src folder)** is recommended, as it keeps your source code separate from the build artifact.
@@ -189,6 +201,8 @@ Usage: `node build.js --minify [provider_names...]`
 - **Testing**: Test both minified and unminified versions before publishing.
 - **Production/Release**: Use minified builds (`node build.js --minify`) for deployment to users.
 
+> **Note:** The bundles committed to this repo are **minified**, and `npm run build` passes `--minify` so it reproduces them exactly. If you build with a bare `node build.js` and commit the result, you will produce a large spurious diff across every provider.
+
 ---
 
 ## 6. API Reference
@@ -227,12 +241,25 @@ async function getStreams(tmdbId, mediaType, season, episode) { ... }
 
 While local Node.js scripts are useful for initial logic verification, providers must be tested within the Nuvio application to ensure compatibility with the Hermes engine and the app's runtime environment.
 
+### 7.0. Structural Verification (offline)
+
+Before testing scraping logic, run the integrity check. It makes **no network requests**, so it works offline and never depends on a site being up:
+
+```bash
+npm test        # or: npm run verify
+```
+
+It checks that every manifest entry resolves, no bundle is orphaned, every bundle loads and exports `getStreams`, no bundle contains Hermes-fatal code (residual `async/await`, `Buffer`, Node builtins), the committed bundles match a fresh build, every provider is in the repo's Indian-regional scope, and every `test_*.js` harness targets a built bundle. Exit code is non-zero if anything fails, so it works as a pre-commit or CI gate.
+
 ### 7.1. Local Logic Verification (Node.js)
+
+> **Require the built bundle, never `src/providers/<name>/index.js`.**
+> The source runs on Node, where `Buffer`, `crypto`, and other Node-only APIs exist. The app runs the *bundle* on Hermes, where they do not. A harness pointed at the source will happily pass while the shipped provider fails on-device — this has already happened once in this repo. `npm test` enforces this rule.
 
 Create a temporary test script (e.g., `test.js`) to verify your provider's scraping logic on your computer.
 
 ```javascript
-const { getStreams } = require('./providers/myprovider.js');
+const { getStreams } = require('./src/providers/myprovider.js');
 
 async function run() {
     console.log("Fetching streams...");
@@ -266,7 +293,7 @@ The **Plugin Tester** is a dedicated developer tool within the Nuvio app that al
     ```bash
     npm start
     ```
-    This serves your `providers/` directory and `manifest.json` over HTTP (e.g., `http://192.168.1.X:3000`).
+    This serves your `src/providers/` directory and `manifest.json` over HTTP (e.g., `http://192.168.1.X:3000`).
 
 #### Accessing the Plugin Tester
 1.  Open the Nuvio application.
@@ -277,11 +304,11 @@ The **Plugin Tester** is a dedicated developer tool within the Nuvio app that al
 The "Individual Plugin" tab is designed for rapid iteration on a single provider script.
 
 > [!IMPORTANT]
-> **Code Requirements:** You must use the **compiled/bundled** file (found in `providers/`) or a standalone **single-file** provider.
+> **Code Requirements:** You must use the **compiled/bundled** file (found in `src/providers/`) or a standalone **single-file** provider.
 > The app **cannot** execute source files that use `import` to load other local files (e.g., from `src/`). If you are using the multi-file workflow, you must build your provider first (`node build.js myprovider`) and test the generated output file.
 
 1.  **Load Source**:
-    -   **From URL**: Enter the direct URL to your *compiled* provider file hosted by your local server (e.g., `http://192.168.1.5:3000/providers/myprovider.js`) and tap **Load**.
+    -   **From URL**: Enter the direct URL to your *compiled* provider file hosted by your local server (e.g., `http://192.168.1.5:3000/src/providers/myprovider.js`) and tap **Load**.
     -   **Direct Input**: Alternatively, paste your *compiled* provider code directly into the code editor.
 2.  **Parameters**: Set the test parameters (TMDB ID, Media Type, Season, Episode).
 3.  **Run Test**: Tap the **Run Test** button.
@@ -304,7 +331,7 @@ The "Repo Tester" tab allows you to validate an entire plugin repository manifes
 
 ## 8. Publishing
 
-1.  **Build your provider**: Ensure `providers/myprovider.js` is up to date.
+1.  **Build your provider**: Ensure `src/providers/myprovider.js` is up to date.
     ```bash
     node build.js myprovider
     ```

@@ -1,4 +1,4 @@
-const { getStreams } = require('./src/providers/tamilian/index.js');
+const { getStreams } = require('./src/providers/tamilian.js');
 
 async function test() {
     console.log("Starting Tamilian test...");

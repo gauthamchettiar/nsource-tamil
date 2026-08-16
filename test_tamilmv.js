@@ -1,4 +1,4 @@
-const { getStreams } = require('./src/providers/tamilmv/index.js');
+const { getStreams } = require('./src/providers/tamilmv.js');
 
 async function test() {
     console.log("Starting TamilMV test...");

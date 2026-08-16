@@ -2,7 +2,7 @@
  * Moviesda Provider Test
  */
 
-const { getStreams } = require('./src/providers/moviesda/index.js');
+const { getStreams } = require('./src/providers/moviesda.js');
 
 async function test() {
     console.log("Starting Moviesda test...");

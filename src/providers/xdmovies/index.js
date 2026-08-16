@@ -104,7 +104,8 @@ function extractServerName(source) {
 
 
 /**
- * Formats the stream title in ToonHub/Animelok style.
+ * Formats the stream title as a provider/quality/server header line
+ * followed by the title and season/episode (or year) label.
  */
 function formatTitle(mediaInfo, serverName, quality, season, episode, size = '', metadata = '') {
     const title = mediaInfo.title || 'Unknown';
