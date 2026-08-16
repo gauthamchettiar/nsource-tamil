@@ -1,10 +1,10 @@
-// Moviesda Scraper for Nuvio Local Scrapers
+// Isaimini (isaiminihits.com) Scraper for Nuvio Local Scrapers
 // React Native compatible version
 //
-// moviesda15.com is dead (now a domain-parking/fingerprint-redirect page).
-// The site moved to moviesdum.com, which runs a completely different CMS
-// (DataLife Engine) with its own search + player pipeline — this is a full
-// rewrite, not a domain swap.
+// Runs on the exact same network/CMS/content database as this repo's
+// Moviesda provider (moviesdum.com) — same DataLife Engine template, same
+// WAF quirk, same rasta428jem.com player backend, even the same slugs for
+// shared titles. This is that provider's logic pointed at a sibling domain.
 
 const cheerio = require('cheerio-without-node-native');
 
@@ -12,8 +12,8 @@ const cheerio = require('cheerio-without-node-native');
 const TMDB_API_KEY = '1b3113663c9004682ed61086cf967c44';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-// Moviesda Configuration
-const MAIN_URL = "https://moviesdum.com";
+// Isaimini Configuration
+const MAIN_URL = "https://isaiminihits.com";
 
 const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -73,7 +73,7 @@ function calculateTitleSimilarity(title1, title2) {
 }
 
 /**
- * Finds the best search result. Moviesdum posts one entry per language
+ * Finds the best search result. Isaimini posts one entry per language
  * variant (e.g. "Jailer (2023) HDRip Hindi", "... Tamil"), so year matches
  * are weighted heavily and a Tamil-language result is preferred on ties.
  */
@@ -97,7 +97,7 @@ function findBestTitleMatch(mediaInfo, results) {
     }
 
     if (bestMatch && bestScore > 0.5) {
-        console.log(`[Moviesda] Best match: "${bestMatch.title}" (score: ${bestScore.toFixed(2)})`);
+        console.log(`[Isaimini] Best match: "${bestMatch.title}" (score: ${bestScore.toFixed(2)})`);
         return bestMatch;
     }
 
@@ -121,17 +121,16 @@ async function getTMDBDetails(tmdbId, mediaType) {
         title: data.title || data.name,
         year: (data.release_date || data.first_air_date || "").split("-")[0]
     };
-    console.log(`[Moviesda] TMDB Info: "${info.title}" (${info.year || 'N/A'})`);
+    console.log(`[Isaimini] TMDB Info: "${info.title}" (${info.year || 'N/A'})`);
     return info;
 }
 
 /**
- * Searches moviesdum.com. This is a DataLife Engine site whose Cloudflare
- * WAF 403s the "obvious" search shape (story= as the first query param, or
- * any POST) — the same quirk seen on AllMovieLand. Hitting the bare root
- * path with do/subaction ordered before story sails through clean.
+ * Searches isaiminihits.com. Same Cloudflare WAF quirk as AllMovieLand and
+ * Moviesda — story= as the first query param (or POST) 403s, but do/
+ * subaction ordered before story on the bare root sails through clean.
  */
-async function searchMoviesda(query) {
+async function searchIsaimini(query) {
     const searchUrl = `${MAIN_URL}/?do=search&subaction=search&story=${encodeURIComponent(query)}`;
     const response = await fetchWithTimeout(searchUrl, { headers: HEADERS }, 10000);
     const html = await response.text();
@@ -179,12 +178,12 @@ async function extractStreams(moviePageUrl) {
     // we know how to resolve (the others are arbitrary third-party embeds).
     const playersMatch = pageHtml.match(/var\s+players\s*=\s*\[([\s\S]*?)\];/);
     if (!playersMatch) {
-        console.log('[Moviesda] No players array found on movie page');
+        console.log('[Isaimini] No players array found on movie page');
         return [];
     }
     const firstPlayer = playersMatch[1].match(/"([^"]+)"/);
     if (!firstPlayer || !firstPlayer[1].startsWith('/')) {
-        console.log('[Moviesda] No internal player entry found');
+        console.log('[Isaimini] No internal player entry found');
         return [];
     }
 
@@ -194,7 +193,7 @@ async function extractStreams(moviePageUrl) {
 
     const p3Match = playsHtml.match(/let\s+p3\s*=\s*(\{.*?\});/s);
     if (!p3Match) {
-        console.log('[Moviesda] No player data (p3) found');
+        console.log('[Isaimini] No player data (p3) found');
         return [];
     }
 
@@ -202,7 +201,7 @@ async function extractStreams(moviePageUrl) {
     try {
         p3 = JSON.parse(p3Match[1]);
     } catch (error) {
-        console.log('[Moviesda] Failed to parse player data:', error.message);
+        console.log('[Isaimini] Failed to parse player data:', error.message);
         return [];
     }
     if (!p3.file || !p3.key) return [];
@@ -217,7 +216,7 @@ async function extractStreams(moviePageUrl) {
     try {
         tracks = JSON.parse((await tracksResponse.text()).replace(/,\]/g, ']'));
     } catch (error) {
-        console.log('[Moviesda] Failed to parse track list:', error.message);
+        console.log('[Isaimini] Failed to parse track list:', error.message);
         return [];
     }
     if (!Array.isArray(tracks)) return [];
@@ -231,7 +230,7 @@ async function extractStreams(moviePageUrl) {
                 streams.push({ language: track.title || '', url: streamUrl });
             }
         } catch (error) {
-            console.log(`[Moviesda] Failed to resolve track "${track.title}":`, error.message);
+            console.log(`[Isaimini] Failed to resolve track "${track.title}":`, error.message);
         }
     }
 
@@ -245,7 +244,7 @@ async function extractStreams(moviePageUrl) {
  * @returns {Promise<Array>} Array of stream objects
  */
 async function getStreams(tmdbId, mediaType = 'movie', season = null, episode = null) {
-    console.log(`[Moviesda] Processing ${mediaType} ${tmdbId}`);
+    console.log(`[Isaimini] Processing ${mediaType} ${tmdbId}`);
 
     try {
         let mediaInfo;
@@ -254,32 +253,32 @@ async function getStreams(tmdbId, mediaType = 'movie', season = null, episode = 
             try {
                 mediaInfo = await getTMDBDetails(tmdbId, mediaType);
             } catch (error) {
-                console.log(`[Moviesda] TMDB fetch failed for ${tmdbId}, using as search query`);
+                console.log(`[Isaimini] TMDB fetch failed for ${tmdbId}, using as search query`);
                 mediaInfo = { title: tmdbId, year: null };
             }
         } else {
             mediaInfo = { title: tmdbId, year: null };
         }
 
-        console.log(`[Moviesda] Searching for: "${mediaInfo.title}" (${mediaInfo.year || 'N/A'})`);
-        const searchResults = await searchMoviesda(mediaInfo.title);
+        console.log(`[Isaimini] Searching for: "${mediaInfo.title}" (${mediaInfo.year || 'N/A'})`);
+        const searchResults = await searchIsaimini(mediaInfo.title);
         const bestMatch = findBestTitleMatch(mediaInfo, searchResults);
 
         if (!bestMatch) {
-            console.warn('[Moviesda] No matching title found');
+            console.warn('[Isaimini] No matching title found');
             return [];
         }
 
-        console.log(`[Moviesda] Found match: ${bestMatch.title} (${bestMatch.href})`);
+        console.log(`[Isaimini] Found match: ${bestMatch.title} (${bestMatch.href})`);
         const streams = await extractStreams(bestMatch.href);
 
         if (streams.length === 0) {
-            console.warn('[Moviesda] No streams found on movie page');
+            console.warn('[Isaimini] No streams found on movie page');
             return [];
         }
 
         return streams.map(stream => ({
-            name: 'Moviesda',
+            name: 'Isaimini',
             title: `${mediaInfo.title}${stream.language ? ` (${stream.language})` : ''}`,
             url: stream.url,
             quality: 'HLS',
@@ -287,11 +286,11 @@ async function getStreams(tmdbId, mediaType = 'movie', season = null, episode = 
                 'Referer': `${MAIN_URL}/`,
                 'User-Agent': HEADERS['User-Agent']
             },
-            provider: 'Moviesda'
+            provider: 'Isaimini'
         }));
 
     } catch (error) {
-        console.error('[Moviesda] getStreams failed:', error.message);
+        console.error('[Isaimini] getStreams failed:', error.message);
         return [];
     }
 }

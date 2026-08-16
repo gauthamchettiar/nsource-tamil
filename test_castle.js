@@ -1,18 +1,19 @@
 /**
- * MovieBox Provider Test
+ * Castle Provider Test
  *
  * Usage:
- *   node test_moviebox.js [tmdbId] [mediaType] [season] [episode]
+ *   node test_castle.js [tmdbId] [mediaType] [season] [episode]
  *
  * Example:
- *   node test_moviebox.js 19995 movie   (Avatar)
+ *   node test_castle.js 937020 movie   (Jailer)
+ *   node test_castle.js 1396 tv 1 1    (Breaking Bad S1E1)
  */
 
-const { getStreams } = require('./src/providers/moviebox.js');
+const { getStreams } = require('./src/providers/castle.js');
 
 async function test() {
-    console.log("Starting MovieBox test...");
-    const tmdbId = process.argv[2] || '19995';
+    console.log("Starting Castle test...");
+    const tmdbId = process.argv[2] || '937020';
     const mediaType = process.argv[3] || 'movie';
     const season = process.argv[4] ? parseInt(process.argv[4]) : undefined;
     const episode = process.argv[5] ? parseInt(process.argv[5]) : undefined;
@@ -25,7 +26,8 @@ async function test() {
         if (streams && streams.length > 0) {
             streams.forEach((stream, index) => {
                 console.log(`\nStream ${index + 1}:`);
-                console.log(`Title: ${stream.title || stream.name}`);
+                console.log(`Name: ${stream.name}`);
+                console.log(`Quality: ${stream.quality} | Size: ${stream.size}`);
                 console.log(`URL: ${(stream.url || '').substring(0, 100)}...`);
             });
             console.log(`\n✅ Success: Found ${streams.length} streams.`);

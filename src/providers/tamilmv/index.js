@@ -8,7 +8,7 @@ const TMDB_API_KEY = '1b3113663c9004682ed61086cf967c44';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 // TamilMV Configuration
-let MAIN_URL = "https://www.1tamilmv.lc";
+let MAIN_URL = "https://www.1tamilmv.ing";
 
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -36,19 +36,6 @@ async function fetchWithTimeout(url, options = {}, timeout = 10000) {
     }
     throw error;
   }
-}
-
-/**
- * De-obfuscates Packer-encoded string
- */
-function unpack(p, a, c, k) {
-  while (c--) {
-    if (k[c]) {
-      const placeholder = c.toString(a);
-      p = p.replace(new RegExp('\\b' + placeholder + '\\b', 'g'), k[c]);
-    }
-  }
-  return p;
 }
 
 /**
@@ -140,184 +127,6 @@ function findBestTitleMatch(mediaInfo, watchLinks) {
 }
 
 // =================================================================================
-// HOST EXTRACTORS
-// =================================================================================
-
-/**
- * Attempts to extract direct stream URL from various embed hosts
- * @param {string} embedUrl The embed URL
- * @returns {Promise<string|null>} Direct stream URL or null
- */
-async function extractDirectStream(embedUrl) {
-  try {
-    console.log(`[TamilMV] Embed URL: ${embedUrl}`);
-    const url = new URL(embedUrl);
-    const hostname = url.hostname.toLowerCase();
-
-    console.log(`[TamilMV] Attempting to extract from: ${hostname}`);
-
-    // Try different extractors based on hostname
-    if (hostname.includes('hglink') || hostname.includes('hubglink')) {
-      return await extractFromGenericEmbed(embedUrl, 'hglink');
-    } else if (hostname.includes('luluvid')) {
-      return await extractFromGenericEmbed(embedUrl, 'luluvid');
-    } else if (hostname.includes('wishonly')) {
-      return await extractFromGenericEmbed(embedUrl, 'wishonly');
-    } else if (hostname.includes('dhcplay')) {
-      return await extractFromGenericEmbed(embedUrl, 'dhcplay');
-    } else if (hostname.includes('vidnest')) {
-      return await extractFromGenericEmbed(embedUrl, 'vidnest');
-    } else if (hostname.includes('strmup')) {
-      return await extractFromStrmup(embedUrl);
-    }
-
-    // If no specific extractor, return null (don't show embed URL)
-    console.log(`[TamilMV] No extractor for ${hostname}, skipping`);
-    return null;
-
-  } catch (error) {
-    console.error(`[TamilMV] Extraction error: ${error.message}`);
-    return null; // Return null instead of embed URL
-  }
-}
-
-/**
- * Specialized extractor for strmup.cc
- */
-async function extractFromStrmup(embedUrl) {
-  try {
-    const url = new URL(embedUrl);
-    const host = url.origin;
-    const filecode = url.pathname.split('/').filter(p => p).pop();
-
-    if (!filecode) return null;
-
-    console.log(`[TamilMV] Strmup filecode: ${filecode}`);
-    const ajaxUrl = `${host}/ajax/stream?filecode=${filecode}`;
-
-    const response = await fetchWithTimeout(ajaxUrl, {
-      headers: {
-        ...HEADERS,
-        'X-Requested-With': 'XMLHttpRequest',
-        'Referer': embedUrl
-      }
-    }, 5000);
-
-    const data = await response.json();
-    if (data && data.streaming_url) {
-      console.log(`[TamilMV] Found direct URL from strmup: ${data.streaming_url}`);
-      return data.streaming_url;
-    }
-    return null;
-  } catch (error) {
-    console.error(`[TamilMV] Strmup extraction failed: ${error.message}`);
-    return null;
-  }
-}
-
-/**
- * Generic extractor that looks for common video source patterns
- */
-async function extractFromGenericEmbed(embedUrl, hostName) {
-  try {
-    const embedBase = new URL(embedUrl).origin;
-    const response = await fetchWithTimeout(embedUrl, {
-      headers: {
-        ...HEADERS,
-        'Referer': MAIN_URL
-      }
-    }, 5000);
-    let html = await response.text();
-
-    // Check if it's a landing page
-    if (html.includes('<title>Loading...</title>') || html.includes('Page is loading')) {
-      console.log(`[TamilMV] Detected landing page on ${hostName}, trying mirrors...`);
-      const mirrors = ['yuguaab.com', 'cavanhabg.com'];
-      for (const mirror of mirrors) {
-        if (hostName.includes(mirror)) continue;
-        const mirrorUrl = embedUrl.replace(hostName, mirror);
-        try {
-          const mirrorRes = await fetchWithTimeout(mirrorUrl, { headers: { ...HEADERS, 'Referer': MAIN_URL } }, 3000);
-          const mirrorHtml = await mirrorRes.text();
-          if (mirrorHtml.includes('jwplayer') || mirrorHtml.includes('sources') || mirrorHtml.includes('eval(function(p,a,c,k,e,d)')) {
-            html = mirrorHtml;
-            break;
-          }
-        } catch (e) { }
-      }
-    }
-
-    // Check for Packer obfuscation
-    const packerMatch = html.match(/eval\(function\(p,a,c,k,e,d\)\{.*?\}\s*\((.*)\)\s*\)/s);
-    if (packerMatch) {
-      const rawArgs = packerMatch[1].trim();
-      const pMatch = rawArgs.match(/^'(.*)',\s*(\d+),\s*(\d+),\s*'(.*?)'\.split\(/s);
-      if (pMatch) {
-        const unpacked = unpack(pMatch[1], parseInt(pMatch[2]), parseInt(pMatch[3]), pMatch[4].split('|'));
-        html += "\n" + unpacked;
-      }
-    }
-
-    // Common patterns for video sources
-    const patterns = [
-      /["']hls[2-4]["']\s*:\s*["']([^"']+)["']/gi,
-      /sources\s*:\s*\[\s*{\s*file\s*:\s*["']([^"']+)["']/gi,
-      /https?:\/\/[^\s"']+\.m3u8[^\s"']*/gi,
-      /["'](\/[^\s"']+\.m3u8[^\s"']*)["']/gi,
-      /https?:\/\/[^\s"']+\.mp4[^\s"']*/gi,
-      /(?:source|file|src)\s*[:=]\s*["']([^"']+\.(?:m3u8|mp4)[^"']*)["']/gi,
-    ];
-
-    const allFoundUrls = [];
-    for (const pattern of patterns) {
-      const matches = html.match(pattern);
-      if (matches) {
-        for (let match of matches) {
-          let videoUrl = match;
-          const kvMatch = match.match(/["']:[ ]*["']([^"']+)["']/);
-          if (kvMatch) videoUrl = kvMatch[1];
-          else {
-            const quoteMatch = match.match(/["']([^"']+)["']/);
-            if (quoteMatch) videoUrl = quoteMatch[1];
-          }
-
-          const absUrlMatch = videoUrl.match(/https?:\/\/[^\s"']+/);
-          if (absUrlMatch) videoUrl = absUrlMatch[0];
-
-          videoUrl = videoUrl.replace(/[\\"'\)\]]+$/, '');
-          if (!videoUrl || videoUrl.length < 5 || videoUrl.includes('google.com') || videoUrl.includes('youtube.com')) continue;
-
-          if (videoUrl.startsWith('/') && !videoUrl.startsWith('//')) {
-            videoUrl = embedBase + videoUrl;
-          }
-          allFoundUrls.push(videoUrl);
-        }
-      }
-    }
-
-    if (allFoundUrls.length > 0) {
-      allFoundUrls.sort((a, b) => {
-        const isM3U8A = a.toLowerCase().includes('.m3u8');
-        const isM3U8B = b.toLowerCase().includes('.m3u8');
-        if (isM3U8A !== isM3U8B) return isM3U8B ? 1 : -1;
-        return a.length - b.length;
-      });
-
-      const bestUrl = allFoundUrls[0];
-      console.log(`[TamilMV] Found direct URL from ${hostName}: ${bestUrl}`);
-      return bestUrl;
-    }
-
-    console.log(`[TamilMV] No direct URL found in ${hostName}, skipping`);
-    return null;
-
-  } catch (error) {
-    console.error(`[TamilMV] Error extracting from ${hostName}: ${error.message}`);
-    return null;
-  }
-}
-
-// =================================================================================
 // CORE FUNCTIONS
 // =================================================================================
 
@@ -352,43 +161,69 @@ async function getTMDBDetails(tmdbId, mediaType) {
 }
 
 /**
- * Extracts [WATCH] links from homepage
+ * Extracts forum thread links (title + URL) from the homepage listing.
+ * TamilMV's current mirrors no longer expose a "[WATCH]" online-embed link
+ * on new releases \u2014 every thread is torrent/magnet only now \u2014 so we match
+ * against the real topic titles instead.
  */
-function extractHomepageWatchLinks(html) {
+function extractHomepageThreadLinks(html) {
   const $ = cheerio.load(html);
   const results = [];
 
-  $('a:contains("[WATCH]")').each((i, el) => {
-    const watchUrl = $(el).attr("href");
-    if (!watchUrl) return;
-
-    let titleNodes = [];
-    let curr = el.previousSibling;
-    if (!curr && el.parentNode) {
-      curr = el.parentNode.previousSibling;
-    }
-
-    while (curr) {
-      const $curr = $(curr);
-      const tag = curr.tagName ? curr.tagName.toLowerCase() : null;
-      if (tag === "br" || tag === "p" || tag === "hr" || tag === "div") break;
-      if ($curr.text().includes("[WATCH]")) break;
-      titleNodes.unshift(curr);
-      curr = curr.previousSibling;
-    }
-
-    let title = $(titleNodes).text().trim();
-    title = title.replace(/^[- \t\n\r|\[\], \u00A0]+/, "").replace(/[- \t\n\r|\[\], \u00A0]+$/, "").trim();
-
-    if (title) {
-      results.push({
-        title,
-        watchUrl
-      });
+  $('a.ipsDataItem_title').each((i, el) => {
+    const $el = $(el);
+    const href = $el.attr('href');
+    const title = $el.text().trim();
+    if (href && title) {
+      results.push({ title, href });
     }
   });
 
   return results;
+}
+
+/**
+ * Extracts magnet links from a thread page, one per quality/size variant,
+ * paired with the release label posted just above each magnet button.
+ */
+function extractMagnetLinks(html) {
+  const $ = cheerio.load(html);
+  const results = [];
+
+  $('a[href^="magnet:"]').each((i, el) => {
+    const href = $(el).attr('href');
+    if (!href) return;
+
+    let label = '';
+    let node = el.previousSibling;
+    while (node) {
+      if (node.tagName && node.tagName.toLowerCase() === 'strong') {
+        label = $(node).text().trim();
+        break;
+      }
+      node = node.previousSibling;
+    }
+
+    results.push({ label, magnet: href });
+  });
+
+  return results;
+}
+
+/**
+ * Pulls a quality label (e.g. "1080p") out of a TamilMV release string.
+ */
+function parseQualityFromLabel(label) {
+  const match = label.match(/\b(2160p|4K|1080p|720p|480p)\b/i);
+  return match ? match[1].toUpperCase() : 'Unknown';
+}
+
+/**
+ * Pulls a file size (e.g. "3.9GB") out of a TamilMV release string.
+ */
+function parseSizeFromLabel(label) {
+  const matches = [...label.matchAll(/\b([\d.]+\s?(?:GB|MB))\b/gi)];
+  return matches.length ? matches[matches.length - 1][1] : '';
 }
 
 /**
@@ -422,37 +257,39 @@ async function getStreams(tmdbId, mediaType = 'movie', season = null, episode = 
 
     const homeResponse = await fetch(MAIN_URL, { headers: HEADERS });
     const homeHtml = await homeResponse.text();
-    const watchLinks = extractHomepageWatchLinks(homeHtml);
+    const threadLinks = extractHomepageThreadLinks(homeHtml);
 
-    const bestMatch = findBestTitleMatch(mediaInfo, watchLinks);
+    const bestMatch = findBestTitleMatch(mediaInfo, threadLinks);
 
     if (!bestMatch) {
-      console.warn("[TamilMV] No matching title with [WATCH] link found on homepage");
+      console.warn("[TamilMV] No matching title found on homepage");
       return [];
     }
 
-    console.log(`[TamilMV] Found watch link for: ${bestMatch.title}`);
+    console.log(`[TamilMV] Found thread for: ${bestMatch.title}`);
 
-    // Try to extract direct stream from the watch URL
-    console.log(`[TamilMV] Extracting direct stream from watch URL...`);
-    const directUrl = await extractDirectStream(bestMatch.watchUrl);
+    // Current mirrors only offer magnet/torrent downloads per thread (no
+    // more hosted "watch online" embeds), so pull every quality variant's
+    // magnet link straight from the thread page.
+    const threadResponse = await fetchWithTimeout(bestMatch.href, { headers: HEADERS }, 10000);
+    const threadHtml = await threadResponse.text();
+    const magnetLinks = extractMagnetLinks(threadHtml);
 
-    if (!directUrl) {
-      console.log(`[TamilMV] Could not extract direct stream, skipping`);
+    if (magnetLinks.length === 0) {
+      console.log(`[TamilMV] No magnet links found on thread page, skipping`);
       return [];
     }
 
-    return [{
+    const cleanTitle = bestMatch.title.split(" - ")[0].trim();
+
+    return magnetLinks.map(({ label, magnet }) => ({
       name: "TamilMV",
-      title: bestMatch.title.split(" - ")[0].trim(), // Clean title
-      url: directUrl,
-      quality: bestMatch.title.includes("720p") ? "720p" : bestMatch.title.includes("1080p") ? "1080p" : "Unknown",
-      headers: {
-        "Referer": MAIN_URL,
-        "User-Agent": HEADERS["User-Agent"]
-      },
+      title: cleanTitle,
+      url: magnet,
+      quality: parseQualityFromLabel(label || bestMatch.title),
+      size: parseSizeFromLabel(label),
       provider: 'TamilMV'
-    }];
+    }));
 
   } catch (error) {
     console.error("[TamilMV] getStreams failed:", error.message);

@@ -21,42 +21,6 @@
       "supportsExternalPlayer": true
     },
     {
-      "id": "tamilblasters",
-      "name": "Tamilblasters",
-      "description": "Tamilblasters provider for Nuvio.",
-      "version": "1.0.1",
-      "author": "User",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "filename": "src/providers/tamilblasters.js",
-      "enabled": true,
-      "logo": "https://1tamilblasters.bz/uploads/monthly_2025_10/169356039_TBLwhitelogo.png.50e3c98229dab88b167074a68df15caf.png",
-      "contentLanguage": [
-        "ta",
-        "en"
-      ],
-      "supportsExternalPlayer": true
-    },
-    {
-      "id": "tamilian",
-      "name": "Tamilian",
-      "description": "Tamilian provider for Nuvio.",
-      "version": "1.0.0",
-      "author": "User",
-      "supportedTypes": [
-        "movie"
-      ],
-      "filename": "src/providers/tamilian.js",
-      "enabled": true,
-      "contentLanguage": [
-        "ta",
-        "en"
-      ],
-      "supportsExternalPlayer": true
-    },
-    {
       "id": "moviesda",
       "name": "Moviesda",
       "description": "Moviesda provider for Nuvio.",
@@ -110,25 +74,6 @@
       "supportsExternalPlayer": true
     },
     {
-      "id": "xdmovies",
-      "name": "XDmovies",
-      "description": "XDmovies provider for Nuvio (Movies and TV Shows)",
-      "version": "1.0.0",
-      "author": "User",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "filename": "src/providers/xdmovies.js",
-      "enabled": true,
-      "logo": "https://xdmovies.site/assets/logo1.png",
-      "contentLanguage": [
-        "en",
-        "hi"
-      ],
-      "supportsExternalPlayer": true
-    },
-    {
       "id": "einthusan",
       "name": "Einthusan",
       "description": "Einthusan provider for Nuvio (1080p Movies in Multi-Lang)",
@@ -146,27 +91,6 @@
         "ta",
         "te",
         "bn"
-      ],
-      "supportsExternalPlayer": true
-    },
-    {
-      "id": "moviebox",
-      "name": "MovieBox",
-      "description": "MovieBox provider for Nuvio (Hindi, Tamil, Telugu & English Movies/Series)",
-      "version": "1.0.0",
-      "author": "User",
-      "supportedTypes": [
-        "movie",
-        "tv"
-      ],
-      "filename": "src/providers/moviebox.js",
-      "enabled": true,
-      "logo": "https://i.postimg.cc/TPwkfqHh/moviebox.png",
-      "contentLanguage": [
-        "en",
-        "hi",
-        "ta",
-        "te"
       ],
       "supportsExternalPlayer": true
     },
@@ -230,6 +154,94 @@
         "hi",
         "ta",
         "te"
+      ],
+      "supportsExternalPlayer": true
+    },
+    {
+      "id": "tamilgun",
+      "name": "TamilGun",
+      "description": "TamilGun provider for Nuvio (Tamil movies)",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie"
+      ],
+      "filename": "src/providers/tamilgun.js",
+      "enabled": true,
+      "contentLanguage": [
+        "ta",
+        "en"
+      ],
+      "supportsExternalPlayer": true
+    },
+    {
+      "id": "tamilcrow",
+      "name": "TamilCrow",
+      "description": "TamilCrow provider for Nuvio (Tamil movies via ok.ru embeds)",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie"
+      ],
+      "filename": "src/providers/tamilcrow.js",
+      "enabled": true,
+      "contentLanguage": [
+        "ta",
+        "en"
+      ],
+      "supportsExternalPlayer": true
+    },
+    {
+      "id": "castle",
+      "name": "Castle",
+      "description": "Castle provider for Nuvio (Indian movies & TV via native API)",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "src/providers/castle.js",
+      "enabled": true,
+      "contentLanguage": [
+        "hi",
+        "ta",
+        "en"
+      ],
+      "supportsExternalPlayer": true
+    },
+    {
+      "id": "isaiminihits",
+      "name": "Isaimini",
+      "description": "Isaimini provider for Nuvio (isaiminihits.com, same network as Moviesda)",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie"
+      ],
+      "filename": "src/providers/isaiminihits.js",
+      "enabled": true,
+      "contentLanguage": [
+        "ta",
+        "hi",
+        "en"
+      ],
+      "supportsExternalPlayer": true
+    },
+    {
+      "id": "tamildude",
+      "name": "TamilDude",
+      "description": "TamilDude provider for Nuvio (Tamil movies via vidmoly embeds)",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie"
+      ],
+      "filename": "src/providers/tamildude.js",
+      "enabled": true,
+      "contentLanguage": [
+        "ta",
+        "en"
       ],
       "supportsExternalPlayer": true
     }
