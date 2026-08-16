@@ -263,6 +263,25 @@
         "hi"
       ],
       "supportsExternalPlayer": true
+    },
+    {
+      "id": "ping",
+      "name": "Ping (DIAGNOSTIC - remove after use)",
+      "description": "Not a real source. Returns one static result with no requires or network calls, to check whether provider loading itself works on a given build.",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "src/providers/ping.js",
+      "enabled": true,
+      "contentLanguage": [
+        "en",
+        "ta",
+        "hi"
+      ],
+      "supportsExternalPlayer": true
     }
   ]
 }
