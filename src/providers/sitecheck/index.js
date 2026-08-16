@@ -31,16 +31,26 @@ function timeBoxed(promise, ms) {
 
 async function checkSite(name, url, options) {
     const opts = options || {};
-    const result = await timeBoxed(
-        fetch(url, { headers: { 'User-Agent': UA, ...(opts.headers || {}) }, method: opts.method || 'GET' })
-            .then(async (res) => {
-                const text = await res.text();
-                const needle = (opts.contains || 'jailer').toLowerCase();
-                const found = text.toLowerCase().includes(needle);
-                return { ok: true, note: `status ${res.status}, "${needle}" found: ${found}, ${text.length} bytes` };
-            }),
-        8000
-    );
+    const doFetch = () => fetch(url, { headers: { 'User-Agent': UA, ...(opts.headers || {}) }, method: opts.method || 'GET' })
+        .then(async (res) => {
+            const text = await res.text();
+            const needle = (opts.contains || 'jailer').toLowerCase();
+            const found = text.toLowerCase().includes(needle);
+            return { ok: true, note: `status ${res.status}, "${needle}" found: ${found}, ${text.length} bytes` };
+        });
+
+    if (typeof setTimeout !== 'function') {
+        // No timer mechanism available — can't bound this, but a plain
+        // try/catch still gets us a real answer instead of a crash.
+        try {
+            const result = await doFetch();
+            return `${name} (unbounded): ${result.note}`;
+        } catch (error) {
+            return `${name} (unbounded): THREW - ${error && error.message ? error.message : String(error)}`;
+        }
+    }
+
+    const result = await timeBoxed(doFetch(), 8000);
     return `${name}: ${result.note}`;
 }
 

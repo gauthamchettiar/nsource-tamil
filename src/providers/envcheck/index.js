@@ -55,6 +55,9 @@ async function getStreams(tmdbId, mediaType, season, episode) {
     try {
         results.push(checkGlobal('typeof fetch', () => typeof fetch));
         results.push(checkGlobal('typeof AbortController', () => typeof AbortController));
+        results.push(checkGlobal('typeof setTimeout', () => typeof setTimeout));
+        results.push(checkGlobal('typeof clearTimeout', () => typeof clearTimeout));
+        results.push(checkGlobal('typeof Promise.race', () => typeof (Promise && Promise.race)));
         results.push(checkGlobal('typeof URL', () => typeof URL));
         results.push(checkGlobal('typeof URLSearchParams', () => typeof URLSearchParams));
         results.push(checkGlobal('typeof atob', () => typeof atob));
@@ -75,7 +78,9 @@ async function getStreams(tmdbId, mediaType, season, episode) {
             results.push(`cheerio.load + select: THREW - ${error.message}`);
         }
 
-        if (typeof fetch === 'function') {
+        if (typeof fetch !== 'function') {
+            results.push('live fetch (TMDB): skipped - fetch is not a function');
+        } else if (typeof setTimeout === 'function') {
             const fetchResult = await timeBoxed(
                 fetch('https://api.themoviedb.org/3/movie/550?api_key=439c478a771f35c05022f9feabcca01c')
                     .then((res) => `status ${res.status}`),
@@ -83,7 +88,14 @@ async function getStreams(tmdbId, mediaType, season, episode) {
             );
             results.push(`live fetch (TMDB): ${fetchResult}`);
         } else {
-            results.push('live fetch (TMDB): skipped - fetch is not a function');
+            // No timer mechanism available at all, so this can't be bounded —
+            // if it hangs, we already know why from the setTimeout line above.
+            try {
+                const res = await fetch('https://api.themoviedb.org/3/movie/550?api_key=439c478a771f35c05022f9feabcca01c');
+                results.push(`live fetch (TMDB, unbounded - no setTimeout to time-box it): status ${res.status}`);
+            } catch (error) {
+                results.push(`live fetch (TMDB, unbounded): THREW - ${error.message}`);
+            }
         }
     } catch (error) {
         results.push(`FATAL - getStreams itself threw: ${error && error.message ? error.message : String(error)}`);
