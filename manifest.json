@@ -282,6 +282,25 @@
         "hi"
       ],
       "supportsExternalPlayer": true
+    },
+    {
+      "id": "sitecheck",
+      "name": "SiteCheck (DIAGNOSTIC - remove after use)",
+      "description": "Not a real source. Hits each real provider's actual search endpoint for 'Jailer' and reports the raw status/response per site, to check reachability from this specific device/network.",
+      "version": "1.0.0",
+      "author": "User",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "src/providers/sitecheck.js",
+      "enabled": true,
+      "contentLanguage": [
+        "en",
+        "ta",
+        "hi"
+      ],
+      "supportsExternalPlayer": true
     }
   ]
 }
